@@ -1,0 +1,33 @@
+@import "~@material/ripple/mixins";
+
+nav.pager {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 14px;
+  color: rgba(0,0,0,0.47);
+  margin-right: -22px;
+  a {
+    width: 56px;
+    height: 56px;
+    line-height: 56px;
+    display: block;
+    color: inherit;
+    @include mdc-ripple-base;
+    @include mdc-ripple-bg((pseudo: "::before", radius: 50%));
+    @include mdc-ripple-fg((pseudo: "::after", radius: 50%, theme-style: 'accent'));
+  }
+  .pager__item {
+    text-align: center;
+    font-weight: 700;
+    &.is-active, &.pager__item--icon {
+      color: rgba(0,0,0,0.87);
+    }
+    &.page__item--inactive {
+      color: rgba(0,0,0,0.33);
+    }
+    line-height: 48px;
+  }
+  span {
+    line-height: inherit;
+  }
+}

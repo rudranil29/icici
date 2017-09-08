@@ -1,0 +1,39 @@
+{#
+/**
+ * @file
+ * Theme override of a views exposed form.
+ *
+ * Available variables:
+ * - form: A render element representing the form.
+ *
+ * Theme variables:
+ * - hide_exposed_form: A boolean indicating whether to hide the exposed form
+ *
+ * @see template_preprocess_views_exposed_form()
+ */
+#}
+{% if q is not empty %}
+  {#
+    This ensures that, if clean URLs are off, the 'q' is added first,
+    as a hidden form element, so that it shows up first in the POST URL.
+  #}
+{{ q }}
+{% endif %}
+{%
+set classes = [
+  'toggle-form',
+  not hide_exposed_form ? 'toggle-form--show'
+]
+%}
+{% if hide_exposed_form %}
+  <span class="mdc-icon-toggle material-icons" role="button" aria-pressed="false"
+        aria-label="View Exposed Form" tabindex="0"
+        data-toggle-on='{"label": "Hide Filters", "content": "close"}'
+        data-toggle-off='{"label": "Display Filters", "content": "filter_list"}'>
+    close
+  </span>
+
+{% endif %}
+<div class="{{ classes|join(' ') }}">
+  {{ form }}
+</div>

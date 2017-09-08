@@ -1,0 +1,15 @@
+body.toolbar-tray-open {
+  header.mdc-toolbar--fixed {
+    top: 80px;
+  }
+  aside.mdc-temporary-drawer {
+    padding-top: 144px;
+  }
+  main.matter-main {
+    margin-top: 32px;
+  }
+}
+
+header.mdc-toolbar--fixed {
+  z-index: 501;
+}

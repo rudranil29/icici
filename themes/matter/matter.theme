@@ -1,0 +1,210 @@
+<?php
+/**
+ * @file
+ * The primary PHP file for the Matter Admin Theme.
+ *
+ */
+
+/**
+ * Implements hook_preprocess_form_element().
+ */
+function matter_preprocess_form_element(array &$variables) {
+  if (!isset($variables['label'])) {
+    return;
+  }
+
+  // This is later used in matter_theme_suggestions_form_element_label_alter
+  // to suggest unique label templates for elements.
+  if (isset($variables['element']['#type'])) {
+    $variables['label']['#form_element_type'] = $variables['element']['#type'];
+  }
+
+  // Pass on theme settings to template.
+  $variables['persistent_helptext'] = theme_get_setting('matter_persistent_helptext');
+  $variables['checkbox_to_toggle'] = theme_get_setting('matter_checkbox_to_toggle');
+}
+
+/**
+ * Implements hook_preprocess_form_element().
+ */
+function matter_preprocess_input(array &$variables) {
+  $variables['checkbox_to_toggle'] = theme_get_setting('matter_checkbox_to_toggle');
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter().
+ */
+function matter_theme_suggestions_form_element_alter(array &$suggestions, array $variables) {
+  $element = $variables['element'];
+  switch ($element['#type']) {
+    // These fields can use the same template.
+    case 'date':
+    case 'email':
+    case 'entity_autocomplete':
+    case 'number':
+    case 'password':
+    case 'search':
+    case 'textfield':
+    case 'url':
+      $suggestions[] = 'form_element__textfield';
+      break;
+    default:
+      $suggestions[] = 'form_element__' . $element['#type'];
+      break;
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter().
+ */
+function matter_theme_suggestions_form_element_label_alter(array &$suggestions, array $variables) {
+  if (isset($variables['element']['#form_element_type'])) {
+    switch ($variables['element']['#form_element_type']) {
+      // These fields can use the same label template.
+      case 'date':
+      case 'email':
+      case 'entity_autocomplete':
+      case 'number':
+      case 'password':
+      case 'search':
+      case 'textfield':
+      case 'textarea':
+      case 'url':
+        $suggestions[] = 'form_element_label__textfield';
+        break;
+      default:
+        $suggestions[] = 'form_element_label__' . $variables['element']['#form_element_type'];
+        break;
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_select().
+ */
+function matter_preprocess_select(array &$variables) {
+  if (!empty($variables['element']['#title']))
+    $variables['title'] = $variables['element']['#title'];
+  else
+    $variables['title'] = t('Select One');
+}
+
+/**
+ * Implements template_preprocess_menu_local_task().
+ */
+function matter_preprocess_menu_local_task(array &$variables) {
+  $classes = [
+    'mdc-tab',
+    'mdc-tab-bar--indicator-accent',
+  ];
+
+  if (isset($variables['is_active']) && $variables['is_active']) {
+    $classes[] = 'mdc-tab--active';
+  }
+
+  $variables['link']['#options']['attributes']['class'] = $classes;
+}
+
+/**
+ * Implements template_preprocess_menu_local_action().
+ */
+function matter_preprocess_menu_local_action(array &$attributes) {
+  $attributes['url'] = $attributes['element']['#link']['url'];
+}
+
+function matter_preprocess_menu_account(&$attributes) {
+  kint($attributes);
+  $attributes['url'] = $attributes['element']['#link']['url'];
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter().
+ */
+function matter_theme_suggestions_table_alter(array &$suggestions, array $variables) {
+  if (!empty($variables['attributes']['id'])) {
+    $suggestions[] = 'table__' . $variables['attributes']['id'];
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter().
+ */
+function matter_theme_suggestions_links_alter(array &$suggestions, array $variables) {
+  if (!empty($variables['attributes']['id'])) {
+    $suggestions[] = 'links__' . $variables['attributes']['id'];
+  }
+  if (!empty($variables['attributes']['class']) && in_array('operations', $variables['attributes']['class'])) {
+    $suggestions[] = 'links__operations';
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function matter_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $formState, $form_id) {
+  if (!empty($form['actions']['delete'])) {
+    $form['actions']['delete']['#attributes']['class'][] = 'mdc-button';
+    $form['actions']['delete']['#attributes']['class'][] = 'mdc-button--accent';
+  }
+}
+
+/**
+ * Implements hook_library_info_alter().
+ */
+function matter_library_info_alter(&$libraries, $extension) {
+  if(theme_get_setting('matter_should_use_custom_cdn')) {
+    $cdn_css = theme_get_setting('matter_library_css');
+    $cdn_js = theme_get_setting('matter_library_js');
+
+    if (!empty($cdn_css) && !empty($cdn_js)) {
+      $libraries['matter/material-components-web'] = [
+        'js' => [
+          $cdn_js => [
+            'external' => TRUE,
+          ],
+        ],
+        'css' => [
+          'theme' => [
+            $cdn_css => [
+              'external' => TRUE,
+            ],
+          ],
+        ],
+      ];
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_page().
+ */
+function matter_preprocess_page(array &$variables) {
+  $variables['theme_color_primary'] = theme_get_setting('matter_color_primary');
+  $variables['theme_color_accent'] = theme_get_setting('matter_color_accent');
+  $variables['theme_color_background'] = theme_get_setting('matter_color_background');
+}
+
+/**
+ * Implements template_preprocess_views_exposed_form().
+ */
+function matter_preprocess_views_exposed_form(array &$variables) {
+  if(theme_get_setting('matter_hide_exposed_form')) {
+    $variables['hide_exposed_form'] = TRUE;
+  }
+}
+
+/**
+ * Implements template_preprocess_table().
+ */
+function matter_preprocess_table(array &$variables) {
+  if (array_key_exists('operations', $variables['header'])) {
+    $variables['header']['operations']['attributes']['class'] = ['views-field-operations'];
+  }
+}
+
+/**
+ * Implements template_preprocess_links().
+ */
+function matter_preprocess_links(array &$variables) {
+
+}

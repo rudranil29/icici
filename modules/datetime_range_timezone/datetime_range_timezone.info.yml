@@ -1,0 +1,14 @@
+name: Datetime Range Timezone
+type: module
+description: 'Provides a new field type and widget to allow a user defined timezone when entering date ranges.'
+package: Date
+# core: 8.x
+
+dependencies:
+  - datetime_range
+
+# Information added by Drupal.org packaging script on 2017-08-22
+version: '8.x-1.x-dev'
+core: '8.x'
+project: 'datetime_range_timezone'
+datestamp: 1503384546

@@ -1,0 +1,93 @@
+@import "~@material/ripple/mixins";
+@import "~@material/elevation/mixins";
+@import "~@material/theme/mixins";
+@import "~@material/typography/mixins";
+
+/* Ensure layout covers the entire screen. */
+html {
+  height: 100%;
+}
+
+/* Place drawer and content side by side. */
+body {
+  display: flex;
+  flex-direction: row;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  height: 100%;
+  width: 100%;
+  padding-top: 64px;
+  @include mdc-theme-prop(background-color, background);
+  @include mdc-typography-base();
+}
+
+aside.mdc-temporary-drawer {
+  padding-top: 64px;
+}
+
+/* Stack toolbar and main on top of each other. */
+.matter-content {
+  display: inline-flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.matter-main {
+  padding: 20px;
+}
+
+.region-content {
+  background-color: #FFFFFF;
+  position: relative;
+}
+
+.floating-fab-buttons {
+  .mdc-fab {
+    position: fixed;
+    right: 20px;
+    bottom: 50px;
+    z-index: 1001;
+  }
+}
+
+.element-machine-name {
+  position: relative;
+  .mdc-textfield__label {
+    position: relative;
+  }
+}
+
+.surface {
+  @include mdc-ripple-base;
+  @include mdc-ripple-bg((pseudo: "::before"));
+  @include mdc-ripple-fg((pseudo: "::after"));
+  overflow: hidden;
+  position: relative;
+}
+
+.background-white {
+  background: #FFFFFF;
+}
+
+.region--content {
+  @include mdc-elevation(2);
+  border-radius: 2px;
+  background: #FFFFFF;
+  position: relative;
+  padding: 24px;
+  table.mdl-data-table {
+    margin-left: -24px;
+    width: calc(100% + 48px);
+  }
+  .typography {
+    h3 {
+      @include mdc-typography('headline');
+    }
+    div, dl, ul, ol, p {
+      @include mdc-typography('body1');
+    }
+  }
+}

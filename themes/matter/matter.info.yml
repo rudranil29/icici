@@ -1,0 +1,43 @@
+type: theme
+base theme: false
+# core: 8.x
+base theme: stable
+
+name: Matter
+description: Admin theme built on top of Google's Material Components for the Web
+
+regions:
+  header: Header
+  tabs: Main Tabs
+  sub_tabs: Sub Tabs
+  drawer: Drawer
+  pre_content: Pre-content
+  breadcrumb: Breadcrumb
+  help: Help
+  content: Content
+regions_hidden:
+  - sidebar_first
+  - sidebar_second
+  - footer
+
+libraries:
+  - matter/global-styling
+
+libraries-override:
+  contextual/drupal.contextual-links: false
+  core/drupal.dropbutton: false
+  core/drupal.tableselect: matter/drupal.tableselect
+  system/base:
+    css:
+      component:
+        css/components/tablesort.module.css: css/components/tablesort.module.css
+        css/components/sticky-header.module.css: css/components/sticky-header.module.css
+
+libraries-extend:
+  core/drupal.tabledrag:
+    - matter/drupal.tabledrag
+# Information added by Drupal.org packaging script on 2017-06-21
+version: '8.x-1.0-alpha4'
+core: '8.x'
+project: 'matter'
+datestamp: 1498012145

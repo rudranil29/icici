@@ -1,0 +1,30 @@
+{#
+/**
+ * @file
+ * Theme override for a section of the help page.
+ *
+ * Available variables:
+ * - title: The section title.
+ * - description: The description text for the section.
+ * - links: Links to display in the section.
+ * - empty: Text to display if there are no links.
+ */
+#}
+<div class="typography">
+  <h2>{{ title }}</h2>
+  <p>{{ description }}</p>
+
+  {% if links %}
+
+    <ul class="">
+      {% for link in links %}
+        <li class="">
+          <span class="">{{ link }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+
+  {% else %}
+    <p>{{ empty }}</p>
+  {% endif %}
+</div>

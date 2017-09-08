@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Theme override for a single local action link.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper element.
+ * - link: A rendered link element.
+ *
+ * @see template_preprocess_menu_local_action()
+ */
+#}
+{% import _self as local_action %}
+
+{{ link(local_action.iconize_text(link['#title']), link['#url'], { 'class':['mdc-button mdc-button--raised mdc-button--dense mdc-button--accent']}) }}
+
+{% macro iconize_text(text) %}
+  <span class="material-icons">add</span> {{ text }}
+{% endmacro %}

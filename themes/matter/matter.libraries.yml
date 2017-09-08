@@ -1,0 +1,34 @@
+global-styling:
+  version: VERSION
+  css:
+    base:
+      css/matter.css: {}
+  js:
+    js/matter.js: {}
+  dependencies:
+    - matter/fonts
+    - matter/material-components-web
+
+material-components-web:
+  css:
+    theme:
+      //unpkg.com/material-components-web@latest/dist/material-components-web.min.css: {type: external, minified: true}
+  js:
+    //unpkg.com/material-components-web@latest/dist/material-components-web.min.js: {type: external, minified: true}
+
+fonts:
+  license:
+    name: Apache License
+    url: https://github.com/google/roboto/blob/master/LICENSE
+  css:
+    theme:
+      '//fonts.googleapis.com/css?family=Roboto:300,400,500,700': {type: external}
+      '//fonts.googleapis.com/icon?family=Material+Icons': {type: external}
+
+drupal.tabledrag:
+  js:
+    js/misc/tabledrag.js: {}
+
+drupal.tableselect:
+  js:
+    js/misc/tableselect.js: {}

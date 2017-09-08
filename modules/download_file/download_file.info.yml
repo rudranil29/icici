@@ -1,0 +1,11 @@
+name: DownloadFile
+type: module
+description: Provides the option to enforce direct download of file field contents
+# core: 8.x
+dependencies:
+  - drupal:file
+# Information added by Drupal.org packaging script on 2017-05-07
+version: '8.x-1.0-unstable1+0-dev'
+core: '8.x'
+project: 'download_file'
+datestamp: 1494196988

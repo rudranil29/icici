@@ -1,0 +1,19 @@
+.mdc-form-field {
+  margin: 13px 0;
+}
+
+.vertical-tabs__pane {
+  padding: 20px;
+}
+
+.form-wrapper[data-drupal-selector="edit-header"] {
+  > div {
+    display: flex;
+  }
+  min-height: 72px;
+  line-height: 72px;
+  background: #FFFFFF;
+  .form-actions {
+    margin-left: 10px;
+  }
+}

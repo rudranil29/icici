@@ -1,0 +1,420 @@
+commit d3c042d528f1ccdccf8c776ff450697d8a17c7a6
+Author: Jibran Ijaz <jibran@1198144.no-reply.drupal.org>
+Date:   Mon Feb 6 22:27:03 2017 +1100
+
+    71
+
+diff --git a/modules/datetime/datetime.views.inc b/modules/datetime/datetime.views.inc
+index d3b0d18..055043b 100644
+--- a/modules/datetime/datetime.views.inc
++++ b/modules/datetime/datetime.views.inc
+@@ -11,18 +11,38 @@
+  * Implements hook_field_views_data().
+  */
+ function datetime_field_views_data(FieldStorageConfigInterface $field_storage) {
++  return datetime_type_field_views_data($field_storage);
++}
++
++/**
++ * Helper for datetime based fields.
++ *
++ * Override the default Views data for a datetime based fields,
++ * adding datetime views plugins.
++ *
++ * @param FieldStorageConfigInterface $field_storage
++ *   The field storage config entity.
++ * @param array $data
++ *   Field view data or views_field_default_views_data($field_storage) if empty.
++ * @param string $column_name
++ *   The schema column name with the datetime value or 'value' if empty.
++ *
++ * @return array
++ *   The array of field views data with the datetime plugin.
++ */
++function datetime_type_field_views_data(FieldStorageConfigInterface $field_storage, $data = [], $column_name = 'value') {
+   // @todo This code only covers configurable fields, handle base table fields
+   //   in https://www.drupal.org/node/2489476.
+-  $data = views_field_default_views_data($field_storage);
++  $data = (empty($data)) ? views_field_default_views_data($field_storage) : $data;
+   foreach ($data as $table_name => $table_data) {
+     // Set the 'datetime' filter type.
+-    $data[$table_name][$field_storage->getName() . '_value']['filter']['id'] = 'datetime';
++    $data[$table_name][$field_storage->getName() . '_' . $column_name]['filter']['id'] = 'datetime';
+ 
+     // Set the 'datetime' argument type.
+-    $data[$table_name][$field_storage->getName() . '_value']['argument']['id'] = 'datetime';
++    $data[$table_name][$field_storage->getName() . '_' . $column_name]['argument']['id'] = 'datetime';
+ 
+     // Create year, month, and day arguments.
+-    $group = $data[$table_name][$field_storage->getName() . '_value']['group'];
++    $group = $data[$table_name][$field_storage->getName() . '_' . $column_name]['group'];
+     $arguments = [
+       // Argument type => help text.
+       'year' => t('Date in the form of YYYY.'),
+@@ -33,11 +53,12 @@ function datetime_field_views_data(FieldStorageConfigInterface $field_storage) {
+       'full_date' => t('Date in the form of CCYYMMDD.'),
+     ];
+     foreach ($arguments as $argument_type => $help_text) {
+-      $data[$table_name][$field_storage->getName() . '_value_' . $argument_type] = [
+-        'title' => $field_storage->getLabel() . ' (' . $argument_type . ')',
++      $column_name_text = $column_name !== 'value' ? ':' . $column_name : '';
++      $data[$table_name][$field_storage->getName() . '_' . $column_name . '_' . $argument_type] = [
++        'title' => $field_storage->getLabel() . $column_name_text . ' (' . $argument_type . ')',
+         'help' => $help_text,
+         'argument' => [
+-          'field' => $field_storage->getName() . '_value',
++          'field' => $field_storage->getName() . '_' . $column_name,
+           'id' => 'datetime_' . $argument_type,
+         ],
+         'group' => $group,
+@@ -45,7 +66,7 @@ function datetime_field_views_data(FieldStorageConfigInterface $field_storage) {
+     }
+ 
+     // Set the 'datetime' sort handler.
+-    $data[$table_name][$field_storage->getName() . '_value']['sort']['id'] = 'datetime';
++    $data[$table_name][$field_storage->getName() . '_' . $column_name]['sort']['id'] = 'datetime';
+   }
+ 
+   return $data;
+diff --git a/modules/datetime/src/Tests/Views/DateTimeHandlerTestBase.php b/modules/datetime/src/Tests/Views/DateTimeHandlerTestBase.php
+index 42f309d..6b889de 100644
+--- a/modules/datetime/src/Tests/Views/DateTimeHandlerTestBase.php
++++ b/modules/datetime/src/Tests/Views/DateTimeHandlerTestBase.php
+@@ -29,6 +29,13 @@
+   protected static $field_name = 'field_date';
+ 
+   /**
++   * Type of the field.
++   *
++   * @var string
++   */
++  protected static $field_type = 'datetime';
++
++  /**
+    * Nodes to test.
+    *
+    * @var \Drupal\node\NodeInterface[]
+@@ -50,7 +57,7 @@ protected function setUp() {
+     $fieldStorage = FieldStorageConfig::create([
+       'field_name' => static::$field_name,
+       'entity_type' => 'node',
+-      'type' => 'datetime',
++      'type' => static::$field_type,
+       'settings' => ['datetime_type' => DateTimeItem::DATETIME_TYPE_DATETIME],
+     ]);
+     $fieldStorage->save();
+diff --git a/modules/datetime_range/datetime_range.install b/modules/datetime_range/datetime_range.install
+new file mode 100644
+index 0000000..1fa65bc
+--- /dev/null
++++ b/modules/datetime_range/datetime_range.install
+@@ -0,0 +1,112 @@
++<?php
++
++/**
++ * @file
++ * Contains install and update functions for Datetime Range.
++ */
++
++/**
++ * Update existing views using datetime_range fields.
++ */
++function datetime_range_update_8001(&$sandbox) {
++  $config_factory = \Drupal::configFactory();
++  $message = NULL;
++  $ids = [];
++
++  foreach ($config_factory->listAll('views.view.') as $view_config_name) {
++    $view = $config_factory->getEditable($view_config_name);
++    $displays = $view->get('display');
++
++    foreach ($displays as $display_name => $display) {
++
++      // Update datetime_range filters.
++      if (isset($display['display_options']['filters'])) {
++        foreach ($display['display_options']['filters'] as $field_name => $filter) {
++          if ($filter['plugin_id'] == 'string') {
++
++            // Get field config.
++            $filter_views_data = \Drupal\views\Views::viewsData()->get($filter['table'])[$filter['field']]['filter'];
++            $field_storage_name = 'field.storage.' . $filter_views_data['entity_type'] . '.' . $filter_views_data['field_name'];
++            $field_configuration = $config_factory->get($field_storage_name);
++
++            if ($field_configuration->get('type') == 'daterange') {
++              $ids[] = $view->get('id');
++
++              // Save off the base part of the config path we are updating.
++              $base = "display.$display_name.display_options.filters.$field_name";
++
++              // Set entity_type and field_name if missing.
++              if (!isset($filter['entity_type'])) {
++                $view->set($base . '.entity_type', $filter_views_data['entity_type']);
++              }
++              if (!isset($filter['field_name'])) {
++                $view->set($base . '.field_name', $filter_views_data['field_name']);
++              }
++
++              // Set datetime plugin_id.
++              $view->set($base . '.plugin_id', 'datetime');
++
++              // Set datetime value.
++              $datetime_value = [
++                'min' => '',
++                'max' => '',
++                'value' => $filter['value'],
++                'type' => 'date',
++              ];
++              $view->set($base . '.value', $datetime_value);
++
++              // Default to '=' operator.
++              $view->set($base . '.operator', '=');
++
++              // Store the changes.
++              $view->save(TRUE);
++            }
++          }
++        }
++      }
++
++      // Update datetime_range sort handlers.
++      if (isset($display['display_options']['sorts'])) {
++        foreach ($display['display_options']['sorts'] as $field_name => $sort) {
++          if ($sort['plugin_id'] == 'standard') {
++
++            // Get field config.
++            $sort_views_data = \Drupal\views\Views::viewsData()->get($sort['table'])[$sort['field']]['sort'];
++            $field_storage_name = 'field.storage.' . $sort_views_data['entity_type'] . '.' . $sort_views_data['field_name'];
++            $field_configuration = $config_factory->get($field_storage_name);
++
++            if ($field_configuration->get('type') == 'daterange') {
++              $ids[] = $view->get('id');
++
++              // Save off the base part of the config path we are updating.
++              $base = "display.$display_name.display_options.sorts.$field_name";
++
++              // Set entity_type and field_name if missing.
++              if (!isset($sort['entity_type'])) {
++                $view->set($base . '.entity_type', $sort_views_data['entity_type']);
++              }
++              if (!isset($sort['field_name'])) {
++                $view->set($base . '.field_name', $sort_views_data['field_name']);
++              }
++
++              // Set datetime plugin_id.
++              $view->set($base . '.plugin_id', 'datetime');
++
++              // Set granularity.
++              $view->set($base . '.granularity', 'seconds');
++
++              // Store the changes.
++              $view->save(TRUE);
++            }
++          }
++        }
++      }
++    }
++  }
++
++  if (!empty($ids)) {
++    $message = \Drupal::translation()->translate('Updated datetime_range filter/sort plugins for views: @ids', ['@ids' => implode(', ', array_unique($ids))]);
++  }
++
++  return $message;
++}
+diff --git a/modules/datetime_range/datetime_range.views.inc b/modules/datetime_range/datetime_range.views.inc
+new file mode 100644
+index 0000000..0d3b6a9
+--- /dev/null
++++ b/modules/datetime_range/datetime_range.views.inc
+@@ -0,0 +1,19 @@
++<?php
++
++/**
++ * @file
++ * Provides views data for the datetime_range module.
++ */
++
++use Drupal\field\FieldStorageConfigInterface;
++
++/**
++ * Implements hook_field_views_data().
++ */
++function datetime_range_field_views_data(FieldStorageConfigInterface $field_storage) {
++  \Drupal::service('module_handler')->loadInclude('datetime', 'inc', 'datetime.views');
++  $data = datetime_type_field_views_data($field_storage);
++  $data = datetime_type_field_views_data($field_storage, $data, 'end_value');
++
++  return $data;
++}
+diff --git a/modules/datetime_range/src/Tests/Views/DateRangeHandlerTestBase.php b/modules/datetime_range/src/Tests/Views/DateRangeHandlerTestBase.php
+new file mode 100644
+index 0000000..2dcf829
+--- /dev/null
++++ b/modules/datetime_range/src/Tests/Views/DateRangeHandlerTestBase.php
+@@ -0,0 +1,24 @@
++<?php
++
++namespace Drupal\datetime_range\Tests\Views;
++
++use Drupal\datetime\Tests\Views\DateTimeHandlerTestBase;
++
++/**
++ * Base class for testing datetime handlers.
++ */
++abstract class DateRangeHandlerTestBase extends DateTimeHandlerTestBase {
++
++  /**
++   * {@inheritdoc}
++   */
++  public static $modules = ['datetime_test', 'node', 'datetime_range'];
++
++  /**
++   * Type of the field.
++   *
++   * @var string
++   */
++  protected static $field_type = 'daterange';
++
++}
+diff --git a/modules/datetime_range/src/Tests/Views/FilterDateTest.php b/modules/datetime_range/src/Tests/Views/FilterDateTest.php
+new file mode 100644
+index 0000000..b46f63b
+--- /dev/null
++++ b/modules/datetime_range/src/Tests/Views/FilterDateTest.php
+@@ -0,0 +1,136 @@
++<?php
++
++namespace Drupal\datetime_range\Tests\Views;
++
++use Drupal\datetime_range\Plugin\Field\FieldType\DateRangeItem;
++use Drupal\field\Entity\FieldStorageConfig;
++use Drupal\views\Views;
++
++/**
++ * Tests date-only fields.
++ *
++ * @group datetime
++ */
++class FilterDateTest extends DateRangeHandlerTestBase {
++
++  /**
++   * {@inheritdoc}
++   */
++  public static $testViews = ['test_filter_datetime'];
++
++  /**
++   * For offset tests, set to the current time.
++   */
++  protected static $date;
++
++  /**
++   * {@inheritdoc}
++   *
++   * Create nodes with relative date range of:
++   * yesterday - today, today - today, and today - tomorrow.
++   */
++  protected function setUp() {
++    parent::setUp();
++
++    // Set to 'today'.
++    static::$date = REQUEST_TIME;
++
++    // Change field storage to date-only.
++    $storage = FieldStorageConfig::load('node.' . static::$field_name);
++    $storage->setSetting('datetime_type', DateRangeItem::DATETIME_TYPE_DATE);
++    $storage->save();
++
++    $dates = [
++      // Tomorrow.
++      \Drupal::service('date.formatter')->format(static::$date + 86400, 'custom', DATETIME_DATE_STORAGE_FORMAT, DATETIME_STORAGE_TIMEZONE),
++      // Today.
++      \Drupal::service('date.formatter')->format(static::$date, 'custom', DATETIME_DATE_STORAGE_FORMAT, DATETIME_STORAGE_TIMEZONE),
++      // Yesterday.
++      \Drupal::service('date.formatter')->format(static::$date - 86400, 'custom', DATETIME_DATE_STORAGE_FORMAT, DATETIME_STORAGE_TIMEZONE),
++    ];
++
++    // Node 0: Yesterday - Today.
++    $this->nodes[] = $this->drupalCreateNode([
++      'field_date' => [
++        'value' => $dates[2],
++        'end_value' => $dates[1],
++      ],
++    ]);
++    // Node 1: Today - Today.
++    $this->nodes[] = $this->drupalCreateNode([
++      'field_date' => [
++        'value' => $dates[1],
++        'end_value' => $dates[1],
++      ],
++    ]);
++    // Node 2: Today - Tomorrow.
++    $this->nodes[] = $this->drupalCreateNode([
++      'field_date' => [
++        'value' => $dates[1],
++        'end_value' => $dates[0],
++      ],
++    ]);
++
++    // Add end date filter to the test_filter_datetime view.
++    /** @var \Drupal\views\Entity\View $view */
++    $view = \Drupal::entityTypeManager()->getStorage('view')->load('test_filter_datetime');
++    $field_end = static::$field_name . '_end_value';
++    $display = $view->getDisplay('default');
++    $filter_end_date = $display['display_options']['filters'][static::$field_name . '_value'];
++    $filter_end_date['id'] = $field_end;
++    $filter_end_date['field'] = $field_end;
++
++    $view->getDisplay('default')['display_options']['filters'][$field_end] = $filter_end_date;
++    $view->save();
++  }
++
++  /**
++   * Test offsets with date-only fields.
++   */
++  public function testDateOffsets() {
++    $view = Views::getView('test_filter_datetime');
++    $field_start = static::$field_name . '_value';
++    $field_end = static::$field_name . '_end_value';
++
++    // Test simple operations.
++    $view->initHandlers();
++
++    // Search nodes with:
++    // - start date greater than or equal to 'yesterday'.
++    // - end date lower than or equal to 'today'.
++    // Expected results: nodes 0 and 1.
++    $view->filter[$field_start]->operator = '>=';
++    $view->filter[$field_start]->value['type'] = 'offset';
++    $view->filter[$field_start]->value['value'] = '-1 day';
++    $view->filter[$field_end]->operator = '<=';
++    $view->filter[$field_end]->value['type'] = 'offset';
++    $view->filter[$field_end]->value['value'] = 'now';
++    $view->setDisplay('default');
++    $this->executeView($view);
++    $expected_result = [
++      ['nid' => $this->nodes[0]->id()],
++      ['nid' => $this->nodes[1]->id()],
++    ];
++    $this->assertIdenticalResultset($view, $expected_result, $this->map);
++    $view->destroy();
++
++    // Search nodes with:
++    // - start date greater than or equal to 'yesterday'.
++    // - end date greater than 'today'.
++    // Expected results: node 2.
++    $view->initHandlers();
++    $view->filter[$field_start]->operator = '>=';
++    $view->filter[$field_start]->value['type'] = 'offset';
++    $view->filter[$field_start]->value['value'] = '-1 day';
++    $view->filter[$field_end]->operator = '>';
++    $view->filter[$field_end]->value['type'] = 'offset';
++    $view->filter[$field_end]->value['value'] = 'now';
++    $view->setDisplay('default');
++    $this->executeView($view);
++    $expected_result = [
++      ['nid' => $this->nodes[2]->id()],
++    ];
++    $this->assertIdenticalResultset($view, $expected_result, $this->map);
++  }
++
++}
